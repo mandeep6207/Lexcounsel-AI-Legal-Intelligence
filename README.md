@@ -1,5 +1,5 @@
 
-  # Legal Intelligence AI- Powered Lawyer
+  # Legal Intelligence AI - Powered Lawyer
 
 This repository contains a React (Vite) frontend and a Flask backend for a small educational legal-intelligence demo.
 
@@ -63,8 +63,3 @@ The frontend fetches APIs from `http://127.0.0.1:5000`, so ensure the backend is
 
 - If the frontend shows module errors for React, re-run `npm install react react-dom`.
 - If Python packages fail to install, ensure you're using a compatible Python version and have pip available.
-
----
-
-If you'd like, I can add a developer helper script to run both servers together or create a simple `Makefile`/PowerShell script for convenience.
-  
