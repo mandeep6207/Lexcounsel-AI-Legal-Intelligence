@@ -1,5 +1,5 @@
 
-  # Legal Intelligence AI - Powered Lawyer
+## Legal Intelligence AI - Powered Lawyer
 
 This repository contains a React (Vite) frontend and a Flask backend for a small educational legal-intelligence demo.
 
