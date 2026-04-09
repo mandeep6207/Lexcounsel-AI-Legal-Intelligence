@@ -2,6 +2,12 @@ import { useEffect, useState } from "react";
 import Header from "../components/Header";
 import Footer from "../components/Footer";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
+import { apiGet } from "../lib/apiClient";
+import type {
+  HelplineRecord,
+  LegalAwarenessResponse,
+  LegalFAQ,
+} from "../types/api";
 
 const categories = [
   { key: "Women Rights", label: "Women Rights", emoji: "👩‍⚖️" },
@@ -13,27 +19,30 @@ const categories = [
 ];
 
 export default function LegalAwareness() {
-  const [rightsData, setRightsData] = useState<any>({});
-  const [faqs, setFaqs] = useState<any[]>([]);
-  const [helplines, setHelplines] = useState<any[]>([]);
+  const [rightsData, setRightsData] = useState<LegalAwarenessResponse>({});
+  const [faqs, setFaqs] = useState<LegalFAQ[]>([]);
+  const [helplines, setHelplines] = useState<HelplineRecord[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [openFaq, setOpenFaq] = useState<number | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
   useEffect(() => {
-    fetch("http://127.0.0.1:5000/api/legal-awareness")
-      .then(res => res.json())
-      .then(setRightsData)
-      .catch(() => setRightsData({}));
-
-    fetch("http://127.0.0.1:5000/api/legal-faqs")
-      .then(res => res.json())
-      .then(setFaqs)
-      .catch(() => setFaqs([]));
-
-    fetch("http://127.0.0.1:5000/api/helplines")
-      .then(res => res.json())
-      .then(setHelplines)
-      .catch(() => setHelplines([]));
+    Promise.all([
+      apiGet<LegalAwarenessResponse>("/api/legal-awareness"),
+      apiGet<LegalFAQ[]>("/api/legal-faqs"),
+      apiGet<HelplineRecord[]>("/api/helplines"),
+    ])
+      .then(([rights, faqData, helplineData]) => {
+        setRightsData(rights);
+        setFaqs(faqData);
+        setHelplines(helplineData);
+        setLoading(false);
+      })
+      .catch((err: Error) => {
+        setError(err.message);
+        setLoading(false);
+      });
   }, []);
 
   const allIndia = helplines.find(h => h.state === "All India");
@@ -48,6 +57,9 @@ export default function LegalAwareness() {
         <p className="text-gray-600 mb-8">
           Know your rights, legal protections and emergency support.
         </p>
+
+        {loading && <p className="text-gray-600 mb-4">Loading legal awareness content...</p>}
+        {error && <p className="text-red-600 mb-4">Failed to load legal awareness data: {error}</p>}
 
         {/* CATEGORIES */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
@@ -72,7 +84,7 @@ export default function LegalAwareness() {
               <CardTitle>{selectedCategory}</CardTitle>
             </CardHeader>
             <CardContent>
-              {rightsData[selectedCategory].map((r: any, i: number) => (
+              {rightsData[selectedCategory].map((r, i: number) => (
                 <div key={i} className="mb-4">
                   <strong>{r.title}</strong>
                   <p className="text-gray-600">{r.description}</p>
@@ -119,7 +131,7 @@ export default function LegalAwareness() {
             {allIndia && (
               <div className="mb-6">
                 <h3 className="font-semibold text-lg">🇮🇳 All India</h3>
-                {allIndia.services.map((s: any, i: number) => (
+                {allIndia.services.map((s, i: number) => (
                   <p key={i}>
                     <strong>{s.type}:</strong> {s.number}
                   </p>
@@ -131,7 +143,7 @@ export default function LegalAwareness() {
             {states.map((state, i) => (
               <div key={i} className="mb-4">
                 <h4 className="font-medium">{state.state}</h4>
-                {state.services.map((s: any, j: number) => (
+                {state.services.map((s, j: number) => (
                   <p key={j} className="text-sm">
                     {s.type}: {s.number}
                   </p>

@@ -1,8 +1,10 @@
 import { Link } from 'react-router-dom';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
+import { apiGet } from '../lib/apiClient';
+import type { CrimeSummaryRow } from '../types/api';
 import {
   BookOpen,
   BarChart3,
@@ -17,17 +19,20 @@ import {
 import { Progress } from '../components/ui/progress';
 
 export default function Dashboard() {
-  const [crimeSummary, setCrimeSummary] = useState<any[]>([]);
+  const [crimeSummary, setCrimeSummary] = useState<CrimeSummaryRow[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
 
   useEffect(() => {
-    fetch('http://127.0.0.1:5000/api/crime/summary')
-      .then((res) => res.json())
+    apiGet<CrimeSummaryRow[]>('/api/crime/summary')
       .then((data) => {
         setCrimeSummary(data);
         setLoading(false);
       })
-      .catch(() => setLoading(false));
+      .catch((err: Error) => {
+        setError(err.message);
+        setLoading(false);
+      });
   }, []);
 
   const totalCrimeReports = crimeSummary.reduce(
@@ -44,6 +49,14 @@ export default function Dashboard() {
           <h1 className="text-4xl text-[#1a2847] mb-8">
             Legal Intelligence Dashboard
           </h1>
+
+          {error && (
+            <Card className="mb-8 border-red-300 bg-red-50">
+              <CardContent className="p-4 text-red-700">
+                Unable to load dashboard data: {error}
+              </CardContent>
+            </Card>
+          )}
 
           {/* Welcome Card */}
           <Card className="mb-8 border-l-4 border-[#ff9933]">
@@ -187,7 +200,13 @@ function FeatureCard({
   desc,
   color,
   linkText,
-}: any) {
+}: {
+  title: string;
+  icon: ReactNode;
+  desc: string;
+  color: string;
+  linkText: string;
+}) {
   return (
     <Card className="hover:shadow-xl transition-all transform hover:scale-105 border-2 border-gray-200 h-full cursor-pointer">
       <CardHeader className={`bg-gradient-to-br ${color} text-white`}>
@@ -206,7 +225,15 @@ function FeatureCard({
   );
 }
 
-function StatCard({ title, value, icon }: any) {
+function StatCard({
+  title,
+  value,
+  icon,
+}: {
+  title: string;
+  value: string;
+  icon: ReactNode;
+}) {
   return (
     <Card>
       <CardContent className="p-6 flex items-center justify-between">

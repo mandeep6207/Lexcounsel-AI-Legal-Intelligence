@@ -5,20 +5,12 @@ import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card"
 import { Input } from "../components/ui/input";
 import { Button } from "../components/ui/button";
 import { Search, AlertCircle, Gavel } from "lucide-react";
-
-interface SCResponse {
-  user_question: string;
-  match_percentage: number;
-  confidence: "High" | "Medium" | "Low";
-  case_name: string;
-  judgment_date: string;
-  matched_question: string;
-  answer: string;
-}
+import { apiPost } from "../lib/apiClient";
+import type { SupremeCourtResponse } from "../types/api";
 
 export default function SupremeCourtExplorer() {
   const [question, setQuestion] = useState("");
-  const [result, setResult] = useState<SCResponse | null>(null);
+  const [result, setResult] = useState<SupremeCourtResponse | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -30,13 +22,10 @@ export default function SupremeCourtExplorer() {
     setResult(null);
 
     try {
-      const res = await fetch("http://127.0.0.1:5000/api/sc/query", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ question }),
-      });
-
-      const data = await res.json();
+      const data = await apiPost<SupremeCourtResponse, { question: string }>(
+        "/api/sc/query",
+        { question }
+      );
 
       // 🔒 SAFETY GATE
       if (data.match_percentage < 50) {
@@ -49,7 +38,7 @@ export default function SupremeCourtExplorer() {
 
       setResult(data);
     } catch (err) {
-      setError("Backend not reachable. Please ensure server is running.");
+      setError((err as Error).message || "Backend not reachable. Please ensure server is running.");
     } finally {
       setLoading(false);
     }

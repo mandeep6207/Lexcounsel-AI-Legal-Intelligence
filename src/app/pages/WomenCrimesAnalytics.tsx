@@ -14,6 +14,8 @@ import {
   Pie,
   Cell,
 } from "recharts";
+import { apiGet } from "../lib/apiClient";
+import type { WomenDashboardResponse } from "../types/api";
 
 export default function WomenCrimesAnalytics() {
   const [years, setYears] = useState<number[]>([]);
@@ -23,15 +25,19 @@ export default function WomenCrimesAnalytics() {
 
   const [crimeTotals, setCrimeTotals] = useState<Record<string, number>>({});
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
   useEffect(() => {
-    fetch("http://127.0.0.1:5000/api/women/dashboard")
-      .then((res) => res.json())
+    apiGet<WomenDashboardResponse>("/api/women/dashboard")
       .then((data) => {
         setYears(data.available_years);
         setStates(data.available_states);
         setSelectedYear(data.available_years[0]);
         setSelectedState(data.available_states[0]);
+      })
+      .catch((err: Error) => {
+        setError(err.message);
+        setLoading(false);
       });
   }, []);
 
@@ -40,14 +46,15 @@ export default function WomenCrimesAnalytics() {
 
     setLoading(true);
 
-    fetch(
-      `http://127.0.0.1:5000/api/women/dashboard?year=${selectedYear}&state=${encodeURIComponent(
-        selectedState
-      )}`
+    apiGet<WomenDashboardResponse>(
+      `/api/women/dashboard?year=${selectedYear}&state=${encodeURIComponent(selectedState)}`
     )
-      .then((res) => res.json())
       .then((data) => {
         setCrimeTotals(data.crime_totals);
+        setLoading(false);
+      })
+      .catch((err: Error) => {
+        setError(err.message);
         setLoading(false);
       });
   }, [selectedYear, selectedState]);
@@ -81,6 +88,8 @@ export default function WomenCrimesAnalytics() {
         <p className="text-gray-600 mb-6">
           Crime distribution by type (State & Year wise)
         </p>
+
+        {error && <p className="text-red-600 mb-4">Failed to load analytics: {error}</p>}
 
         {/* FILTERS */}
         <div className="flex gap-4 mb-6">

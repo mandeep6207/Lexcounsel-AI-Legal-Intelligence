@@ -5,45 +5,50 @@ import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card"
 import { Input } from "../components/ui/input";
 import { Button } from "../components/ui/button";
 import { BookOpen, Brain, AlertCircle } from "lucide-react";
+import { apiGet, apiPost } from "../lib/apiClient";
+import type { IPCExplainResponse, IPCSearchResult } from "../types/api";
 
 export default function IPCAIAssistant() {
   const [query, setQuery] = useState("");
-  const [results, setResults] = useState<any[]>([]);
-  const [selected, setSelected] = useState<any>(null);
+  const [results, setResults] = useState<IPCSearchResult[]>([]);
+  const [selected, setSelected] = useState<IPCExplainResponse | null>(null);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
 
   const searchSection = async () => {
     if (!query.trim()) return;
 
     setLoading(true);
     setSelected(null);
+    setError("");
 
-    const res = await fetch(
-      `http://127.0.0.1:5000/api/ipc/assistant/search?q=${encodeURIComponent(
-        query
-      )}`
-    );
-
-    const data = await res.json();
-    setResults(data);
-    setLoading(false);
+    try {
+      const data = await apiGet<IPCSearchResult[]>(
+        `/api/ipc/assistant/search?q=${encodeURIComponent(query)}`
+      );
+      setResults(data);
+    } catch (err) {
+      setError((err as Error).message);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const explainSection = async (section: string) => {
     setLoading(true);
+    setError("");
 
-    const res = await fetch(
-      "http://127.0.0.1:5000/api/ipc/assistant/explain",
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ section }),
-      }
-    );
-
-    const data = await res.json();
-    setSelected(data);
-    setLoading(false);
+    try {
+      const data = await apiPost<IPCExplainResponse, { section: string }>(
+        "/api/ipc/assistant/explain",
+        { section }
+      );
+      setSelected(data);
+    } catch (err) {
+      setError((err as Error).message);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -76,6 +81,7 @@ export default function IPCAIAssistant() {
         </Card>
 
         {loading && <p>Loading...</p>}
+        {error && <p className="text-red-600">{error}</p>}
 
         {/* SEARCH RESULTS */}
         {results.length > 0 && !selected && (

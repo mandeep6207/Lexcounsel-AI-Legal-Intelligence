@@ -1,31 +1,24 @@
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { Suspense, lazy } from "react";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 
-/* Landing & Onboarding */
-import LandingPage from './pages/LandingPage';
-import PersonalDetails from './pages/PersonalDetails';
-import EducationDetails from './pages/EducationDetails';
-import PurposeAwareness from './pages/PurposeAwareness';
-
-/* Core Pages */
-import Dashboard from './pages/Dashboard';
-import ContactPage from './pages/ContactPage';
-
-/* Analytics */
-import WomenCrimesAnalytics from './pages/WomenCrimesAnalytics';
-import IPCCrimeDashboard from './pages/IPCCrimeDashboard';
-
-/* AI Tools */
-import IPCAIAssistant from './pages/IPCAIAssistant';
-import SupremeCourtExplorer from './pages/SupremeCourtExplorer';
-import CaseOutcomePredictor from './pages/CaseOutcomePredictor';
-
-/* Legal Awareness */
-import LegalAwareness from './pages/LegalAwareness';
+const LandingPage = lazy(() => import("./pages/LandingPage"));
+const PersonalDetails = lazy(() => import("./pages/PersonalDetails"));
+const EducationDetails = lazy(() => import("./pages/EducationDetails"));
+const PurposeAwareness = lazy(() => import("./pages/PurposeAwareness"));
+const Dashboard = lazy(() => import("./pages/Dashboard"));
+const ContactPage = lazy(() => import("./pages/ContactPage"));
+const WomenCrimesAnalytics = lazy(() => import("./pages/WomenCrimesAnalytics"));
+const IPCCrimeDashboard = lazy(() => import("./pages/IPCCrimeDashboard"));
+const IPCAIAssistant = lazy(() => import("./pages/IPCAIAssistant"));
+const SupremeCourtExplorer = lazy(() => import("./pages/SupremeCourtExplorer"));
+const CaseOutcomePredictor = lazy(() => import("./pages/CaseOutcomePredictor"));
+const LegalAwareness = lazy(() => import("./pages/LegalAwareness"));
 
 export default function App() {
   return (
     <BrowserRouter>
-      <Routes>
+      <Suspense fallback={<div className="p-6 text-center">Loading page...</div>}>
+        <Routes>
 
         {/* ✅ Landing Page FIRST */}
         <Route path="/" element={<LandingPage />} />
@@ -56,7 +49,8 @@ export default function App() {
         {/* Fallback */}
         <Route path="*" element={<Navigate to="/" replace />} />
 
-      </Routes>
+        </Routes>
+      </Suspense>
     </BrowserRouter>
   );
 }

@@ -33,7 +33,14 @@ Notes:
 
 ## Backend (Flask)
 
-The backend is a small Flask app in the `backend/` folder and serves API endpoints on port `5000` by default.
+The backend is a modular Flask app in the `backend/` folder and serves API endpoints on port `5000` by default.
+
+Structure:
+- `backend/routes/` - API route layer (Blueprint)
+- `backend/services/` - data access + semantic retrieval + ML model logic
+- `backend/schemas/` - request validation schemas (Pydantic)
+- `backend/utils/` - response envelope + error handlers
+- `backend/API_CONTRACT.md` - request/response contract
 
 1. Create and activate a Python virtual environment (Windows example):
 
@@ -45,6 +52,11 @@ The backend is a small Flask app in the `backend/` folder and serves API endpoin
    python app.py
    ```
 
+2. (Recommended) Create a backend env file from `backend/.env.example` and set:
+
+   - `FLASK_ENV=development` for local debug mode
+   - `CORS_ORIGINS=http://localhost:5173,http://127.0.0.1:5173`
+
 2. The backend will run on `http://127.0.0.1:5000` and CORS is enabled for local development.
 
 ---
@@ -55,7 +67,15 @@ Open two terminals:
 - Terminal 1: start the backend (see steps above).
 - Terminal 2 (repo root): `npm run dev` to start the frontend.
 
+Or run both together with one command (requires Python to be on PATH and backend deps installed):
+
+- From the repo root run: `npm run dev:all` — this uses `concurrently` to start the frontend and run `python backend/app.py`.
+
 The frontend fetches APIs from `http://127.0.0.1:5000`, so ensure the backend is running.
+
+For production-like frontend config, copy `.env.example` to `.env` and set:
+
+- `VITE_API_BASE_URL=http://127.0.0.1:5000`
 
 ---
 

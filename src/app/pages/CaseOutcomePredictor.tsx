@@ -14,6 +14,8 @@ import {
   SelectValue,
 } from "../components/ui/select";
 import { Brain, AlertTriangle, Shield, FileText } from "lucide-react";
+import { apiPost } from "../lib/apiClient";
+import type { CasePredictionResponse } from "../types/api";
 
 export default function CaseOutcomePredictor() {
   const [loading, setLoading] = useState(false);
@@ -25,30 +27,32 @@ export default function CaseOutcomePredictor() {
   const [evidence, setEvidence] = useState("Moderate");
   const [pastRecord, setPastRecord] = useState("None");
 
-  const [prediction, setPrediction] = useState<any>(null);
+  const [prediction, setPrediction] = useState<CasePredictionResponse | null>(null);
+  const [error, setError] = useState("");
 
   const handlePredict = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
+    setError("");
 
     try {
-      const res = await fetch("http://127.0.0.1:5000/api/case/predict", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
+      const data = await apiPost<CasePredictionResponse, {
+        case_type: string;
+        ipc_section: string;
+        case_facts_summary: string;
+        evidence_strength: string;
+        past_record: string;
+      }>("/api/case/predict", {
           case_type: caseType,
           ipc_section: ipcSection,
           case_facts_summary: caseFacts,
           evidence_strength: evidence,
           past_record: pastRecord,
-        }),
       });
-
-      const data = await res.json();
       setPrediction(data);
       setShowPrediction(true);
     } catch (err) {
-      console.error("Prediction error:", err);
+      setError((err as Error).message || "Prediction failed.");
     } finally {
       setLoading(false);
     }
@@ -66,6 +70,12 @@ export default function CaseOutcomePredictor() {
           <p className="text-gray-600 mb-8">
             Explainable, dataset-driven legal outcome simulation
           </p>
+
+          {error && (
+            <Card className="mb-8 bg-red-50 border-2 border-red-200">
+              <CardContent className="p-4 text-red-700">{error}</CardContent>
+            </Card>
+          )}
 
           {/* DISCLAIMER */}
           <Card className="mb-8 bg-red-50 border-2 border-red-200">

@@ -7,11 +7,14 @@ import { Button } from '../components/ui/button';
 import { Textarea } from '../components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
 import { Mail, Phone, MapPin, Clock, MessageCircle } from 'lucide-react';
+import { useState } from 'react';
 
 export default function ContactPage() {
+  const [submitted, setSubmitted] = useState(false);
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    alert('Thank you for your message. We will get back to you soon!');
+    setSubmitted(true);
   };
 
   return (
@@ -93,6 +96,12 @@ export default function ContactPage() {
                 </CardHeader>
                 <CardContent className="p-8">
                   <form onSubmit={handleSubmit} className="space-y-6">
+                    {submitted && (
+                      <div className="rounded border border-green-300 bg-green-50 p-3 text-green-700">
+                        Thanks for your message. Our team will get back to you soon.
+                      </div>
+                    )}
+
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                       <div>
                         <Label htmlFor="name">Full Name *</Label>

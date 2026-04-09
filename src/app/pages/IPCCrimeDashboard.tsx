@@ -14,6 +14,8 @@ import {
   Pie,
   Cell,
 } from "recharts";
+import { apiGet } from "../lib/apiClient";
+import type { DistrictCrimeRow, IPCDashboardResponse } from "../types/api";
 
 export default function IPCCrimeDashboard() {
   const [years, setYears] = useState<number[]>([]);
@@ -21,14 +23,14 @@ export default function IPCCrimeDashboard() {
   const [selectedYear, setSelectedYear] = useState<number | null>(null);
   const [selectedState, setSelectedState] = useState<string>("");
 
-  const [districtData, setDistrictData] = useState<any[]>([]);
+  const [districtData, setDistrictData] = useState<DistrictCrimeRow[]>([]);
   const [crimeTotals, setCrimeTotals] = useState<Record<string, number>>({});
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
   /* 🔹 Load filters */
   useEffect(() => {
-    fetch("http://127.0.0.1:5000/api/ipc/records")
-      .then((res) => res.json())
+    apiGet<Pick<IPCDashboardResponse, "available_years" | "available_states">>("/api/ipc/records")
       .then((data) => {
         setYears(data.available_years);
         setStates(data.available_states);
@@ -38,6 +40,10 @@ export default function IPCCrimeDashboard() {
 
         if (data.available_states.length)
           setSelectedState(data.available_states[0]);
+      })
+      .catch((err: Error) => {
+        setError(err.message);
+        setLoading(false);
       });
   }, []);
 
@@ -48,22 +54,18 @@ export default function IPCCrimeDashboard() {
     setLoading(true);
 
     Promise.all([
-      fetch(
-        `http://127.0.0.1:5000/api/ipc/dashboard?year=${selectedYear}&state=${encodeURIComponent(
-          selectedState
-        )}`
-      ).then((r) => r.json()),
-
-      fetch(
-        `http://127.0.0.1:5000/api/ipc/districts?year=${selectedYear}&state=${encodeURIComponent(
-          selectedState
-        )}`
-      ).then((r) => r.json()),
-    ]).then(([dashboard, districts]) => {
-      setCrimeTotals(dashboard.crime_totals || {});
-      setDistrictData(districts || []);
-      setLoading(false);
-    });
+      apiGet<IPCDashboardResponse>(`/api/ipc/dashboard?year=${selectedYear}&state=${encodeURIComponent(selectedState)}`),
+      apiGet<DistrictCrimeRow[]>(`/api/ipc/districts?year=${selectedYear}&state=${encodeURIComponent(selectedState)}`),
+    ])
+      .then(([dashboard, districts]) => {
+        setCrimeTotals(dashboard.crime_totals || {});
+        setDistrictData(districts || []);
+        setLoading(false);
+      })
+      .catch((err: Error) => {
+        setError(err.message);
+        setLoading(false);
+      });
   }, [selectedYear, selectedState]);
 
   /* 🔹 Pie Data */
@@ -94,6 +96,8 @@ export default function IPCCrimeDashboard() {
         <p className="text-gray-600 mb-6">
           District-wise & crime-type IPC analytics (NCRB dataset)
         </p>
+
+        {error && <p className="text-red-600 mb-4">Failed to load analytics: {error}</p>}
 
         {/* FILTERS */}
         <div className="flex gap-4 mb-6">
