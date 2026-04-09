@@ -6,9 +6,9 @@ LexCounsel AI is a full-stack legal intelligence product that combines semantic 
 
 ---
 
-## 🚀 1. Project Title + Tagline
+## 🚀 1. Introduction
 
-**LexCounsel AI**  
+AI-powered legal intelligence platform that combines semantic search, machine learning, and multilingual assistance to simplify legal understanding, case analysis, and case data dashboards. 
 *From legal confusion to legal clarity in seconds.*
 
 ---
