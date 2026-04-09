@@ -4,6 +4,7 @@ import Header from '../components/Header';
 import Footer from '../components/Footer';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { apiGet } from '../lib/apiClient';
+import { useAuth } from '../lib/auth';
 import type { CrimeSummaryRow } from '../types/api';
 import {
   BookOpen,
@@ -15,6 +16,8 @@ import {
   AlertCircle,
   User,
   CheckCircle,
+  MessageCircle,
+  FileText,
 } from 'lucide-react';
 import { Progress } from '../components/ui/progress';
 
@@ -22,6 +25,7 @@ export default function Dashboard() {
   const [crimeSummary, setCrimeSummary] = useState<CrimeSummaryRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const { user, signOut } = useAuth();
 
   useEffect(() => {
     apiGet<CrimeSummaryRow[]>('/api/crime/summary')
@@ -68,20 +72,25 @@ export default function Dashboard() {
                   </div>
                   <div>
                     <h2 className="text-2xl text-[#1a2847]">
-                      Welcome back, User
+                      Welcome back, {user?.name ?? 'Guest User'}
                     </h2>
                     <p className="text-gray-600">
-                      Role: Student | Purpose: Learning Indian Law
+                      {user?.email ? user.email : 'Guest session'}
                     </p>
                   </div>
                 </div>
 
-                <div className="text-right">
+                <div className="text-right space-y-2">
                   <p className="text-sm text-gray-600">Profile Completion</p>
                   <Progress value={100} className="w-32 mt-2" />
                   <p className="text-sm text-green-600 flex items-center gap-1 mt-1">
                     <CheckCircle className="w-4 h-4" /> 100% Complete
                   </p>
+                  {user && (
+                    <button onClick={signOut} className="text-sm text-[#1a2847] hover:text-[#ff9933]">
+                      Sign out
+                    </button>
+                  )}
                 </div>
               </div>
             </CardContent>
@@ -131,6 +140,26 @@ export default function Dashboard() {
                 desc="Educational AI model for predicting case outcomes."
                 color="from-indigo-500 to-indigo-600"
                 linkText="Try It →"
+              />
+            </Link>
+
+            <Link to="/tools/chat-assistant">
+              <FeatureCard
+                title="Legal Chat Assistant"
+                icon={<MessageCircle className="w-8 h-8" />}
+                desc="Chat with the assistant in English or Hindi with citations."
+                color="from-slate-500 to-slate-700"
+                linkText="Open Chat →"
+              />
+            </Link>
+
+            <Link to="/tools/document-generator">
+              <FeatureCard
+                title="Document Generator"
+                icon={<FileText className="w-8 h-8" />}
+                desc="Generate FIRs and complaint letters with PDF export."
+                color="from-teal-500 to-cyan-600"
+                linkText="Generate →"
               />
             </Link>
 

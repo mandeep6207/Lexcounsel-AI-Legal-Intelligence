@@ -1,4 +1,27 @@
 import logging
+import os
+import subprocess
+import sys
+
+
+def _relaunch_in_venv() -> None:
+    project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+    venv_python = os.path.join(project_root, ".venv", "Scripts", "python.exe")
+
+    if not os.path.exists(venv_python):
+        return
+
+    current = os.path.abspath(sys.executable).lower()
+    target = os.path.abspath(venv_python).lower()
+    if current == target or os.environ.get("AI_LAWYER_VENV_BOOTSTRAPPED") == "1":
+        return
+
+    os.environ["AI_LAWYER_VENV_BOOTSTRAPPED"] = "1"
+    subprocess.Popen([venv_python, os.path.abspath(__file__), *sys.argv[1:]], cwd=project_root)
+    raise SystemExit(0)
+
+
+_relaunch_in_venv()
 
 from flask import Flask
 from flask_cors import CORS

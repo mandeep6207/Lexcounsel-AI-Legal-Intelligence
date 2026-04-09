@@ -3,3 +3,8 @@ flask-cors
 pandas
 scikit-learn
 pydantic
+sentence-transformers
+faiss-cpu
+reportlab
+python-docx
+deep-translator

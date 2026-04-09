@@ -7,8 +7,10 @@ import { Button } from "../components/ui/button";
 import { Search, AlertCircle, Gavel } from "lucide-react";
 import { apiPost } from "../lib/apiClient";
 import type { SupremeCourtResponse } from "../types/api";
+import { useLanguage } from "../lib/language";
 
 export default function SupremeCourtExplorer() {
+  const { language, isHindi, toggleLanguage } = useLanguage();
   const [question, setQuestion] = useState("");
   const [result, setResult] = useState<SupremeCourtResponse | null>(null);
   const [loading, setLoading] = useState(false);
@@ -23,7 +25,7 @@ export default function SupremeCourtExplorer() {
 
     try {
       const data = await apiPost<SupremeCourtResponse, { question: string }>(
-        "/api/sc/query",
+        `/api/sc/query?language=${language}`,
         { question }
       );
 
@@ -50,13 +52,21 @@ export default function SupremeCourtExplorer() {
 
       <div className="flex-1 py-12">
         <div className="max-w-5xl mx-auto px-4">
-          <h1 className="text-4xl text-[#1a2847] mb-2">
-            Supreme Court AI Lawyer
-          </h1>
-          <p className="text-gray-600 mb-8">
-            Ask legal questions and get answers strictly based on Supreme Court
-            judgments
-          </p>
+          <div className="flex items-center justify-between gap-3 flex-wrap mb-8">
+            <div>
+              <h1 className="text-4xl text-[#1a2847] mb-2">
+                Supreme Court AI Lawyer
+              </h1>
+              <p className="text-gray-600">
+                {isHindi
+                  ? "सुप्रीम कोर्ट के फैसलों के आधार पर उत्तर पाएं"
+                  : "Ask legal questions and get answers strictly based on Supreme Court judgments"}
+              </p>
+            </div>
+            <Button variant="outline" onClick={toggleLanguage}>
+              {isHindi ? "English" : "हिन्दी"}
+            </Button>
+          </div>
 
           {/* SEARCH BOX */}
           <Card className="mb-6">

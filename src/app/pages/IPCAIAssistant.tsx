@@ -7,8 +7,10 @@ import { Button } from "../components/ui/button";
 import { BookOpen, Brain, AlertCircle } from "lucide-react";
 import { apiGet, apiPost } from "../lib/apiClient";
 import type { IPCExplainResponse, IPCSearchResult } from "../types/api";
+import { useLanguage } from "../lib/language";
 
 export default function IPCAIAssistant() {
+  const { language, isHindi, toggleLanguage } = useLanguage();
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<IPCSearchResult[]>([]);
   const [selected, setSelected] = useState<IPCExplainResponse | null>(null);
@@ -24,7 +26,7 @@ export default function IPCAIAssistant() {
 
     try {
       const data = await apiGet<IPCSearchResult[]>(
-        `/api/ipc/assistant/search?q=${encodeURIComponent(query)}`
+        `/api/ipc/assistant/search?q=${encodeURIComponent(query)}&language=${language}`
       );
       setResults(data);
     } catch (err) {
@@ -40,7 +42,7 @@ export default function IPCAIAssistant() {
 
     try {
       const data = await apiPost<IPCExplainResponse, { section: string }>(
-        "/api/ipc/assistant/explain",
+        `/api/ipc/assistant/explain?language=${language}`,
         { section }
       );
       setSelected(data);
@@ -56,12 +58,21 @@ export default function IPCAIAssistant() {
       <Header />
 
       <div className="flex-1 py-10 max-w-6xl mx-auto px-4">
-        <h1 className="text-3xl text-[#1a2847] mb-2">
-          IPC AI Assistant
-        </h1>
-        <p className="text-gray-600 mb-6">
-          Search IPC sections & get simplified explanations (educational)
-        </p>
+        <div className="flex items-center justify-between gap-3 flex-wrap mb-6">
+          <div>
+            <h1 className="text-3xl text-[#1a2847] mb-2">
+              {isHindi ? "IPC AI Assistant" : "IPC AI Assistant"}
+            </h1>
+            <p className="text-gray-600">
+              {isHindi
+                ? "IPC धाराओं को खोजें और सरल व्याख्या पाएं"
+                : "Search IPC sections & get simplified explanations (educational)"}
+            </p>
+          </div>
+          <Button variant="outline" onClick={toggleLanguage}>
+            {isHindi ? "English" : "हिन्दी"}
+          </Button>
+        </div>
 
         {/* SEARCH */}
         <Card className="mb-6">

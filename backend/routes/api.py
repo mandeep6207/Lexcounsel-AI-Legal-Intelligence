@@ -1,27 +1,59 @@
+import base64
+from functools import lru_cache
+
 from flask import Blueprint, request
 import pandas as pd
 
-from schemas.requests import IPCExplainRequest, SupremeCourtQueryRequest, CasePredictRequest
+from schemas.requests import (
+    IPCExplainRequest,
+    SupremeCourtQueryRequest,
+    CasePredictRequest,
+    ChatRequest,
+    DocumentRequest,
+    LanguageRequest,
+)
 from services.data_store import data_store
 from services.retrieval_service import SemanticRetriever
 from services.case_model_service import CaseOutcomeModelService
+from services.chat_service import LegalChatService
+from services.document_service import LegalDocumentService
+from services.translation_service import translate_text
 from utils.responses import success_response, error_response
 
 
 api_bp = Blueprint("api", __name__)
 
-ipc_retriever = SemanticRetriever(
-    data_store.ipc_sections,
-    text_builder=lambda row: f"{row.get('section', '')} {row.get('title', '')} {row.get('law_text', '')}",
-)
+@lru_cache(maxsize=1)
+def get_ipc_retriever() -> SemanticRetriever:
+    return SemanticRetriever(
+        data_store.ipc_sections,
+        text_builder=lambda row: f"{row.get('section', '')} {row.get('title', '')} {row.get('law_text', '')}",
+    )
 
-sc_retriever = SemanticRetriever(
-    data_store.judgments,
-    text_builder=lambda row: f"{row.get('question', '')} {row.get('answer', '')} {row.get('case_name', '')}",
-)
 
-case_service = CaseOutcomeModelService(data_store.case_dataset_path)
-case_service.train()
+@lru_cache(maxsize=1)
+def get_sc_retriever() -> SemanticRetriever:
+    return SemanticRetriever(
+        data_store.judgments,
+        text_builder=lambda row: f"{row.get('question', '')} {row.get('answer', '')} {row.get('case_name', '')}",
+    )
+
+
+@lru_cache(maxsize=1)
+def get_case_service() -> CaseOutcomeModelService:
+    service = CaseOutcomeModelService(data_store.case_dataset_path)
+    service.train()
+    return service
+
+
+@lru_cache(maxsize=1)
+def get_chat_service() -> LegalChatService:
+    return LegalChatService(get_ipc_retriever(), get_sc_retriever())
+
+
+@lru_cache(maxsize=1)
+def get_document_service() -> LegalDocumentService:
+    return LegalDocumentService()
 
 
 @api_bp.get("/")
@@ -131,16 +163,20 @@ def ipc_records():
 @api_bp.get("/api/ipc/assistant/search")
 def ipc_assistant_search():
     query = request.args.get("q", "").strip().lower()
+    language = request.args.get("language", "en")
     if not query:
         return success_response([])
 
-    matches = ipc_retriever.search(query, top_k=5)
+    normalized_query = translate_text(query, source=language, target="en") if language == "hi" else query
+    matches = get_ipc_retriever().search(normalized_query, top_k=3)
     results = [
         {
             "section": match.item.get("section", ""),
-            "title": match.item.get("title", ""),
-            "law_text": match.item.get("law_text", ""),
+            "title": translate_text(match.item.get("title", ""), source="en", target=language) if language == "hi" else match.item.get("title", ""),
+            "law_text": translate_text(match.item.get("law_text", ""), source="en", target=language) if language == "hi" else match.item.get("law_text", ""),
             "similarity": round(match.score, 4),
+            "confidence": "High" if match.score >= 0.65 else "Medium" if match.score >= 0.35 else "Low",
+            "citations": [f"IPC Section {match.item.get('section', '')}"],
         }
         for match in matches
     ]
@@ -151,6 +187,7 @@ def ipc_assistant_search():
 @api_bp.post("/api/ipc/assistant/explain")
 def ipc_assistant_explain():
     payload = IPCExplainRequest.model_validate(request.get_json(silent=True) or {})
+    language = request.args.get("language", "en")
 
     section = next((s for s in data_store.ipc_sections if s.get("section") == payload.section.strip()), None)
     if not section:
@@ -159,13 +196,18 @@ def ipc_assistant_explain():
     return success_response(
         {
             "section": section["section"],
-            "title": section["title"],
-            "law_text": section["law_text"],
-            "simple_explanation": (
+            "title": translate_text(section["title"], source="en", target=language) if language == "hi" else section["title"],
+            "law_text": translate_text(section["law_text"], source="en", target=language) if language == "hi" else section["law_text"],
+            "simple_explanation": translate_text(
+                f"IPC Section {section['section']} covers {section['title']}. "
+                f"In practical terms: {section['law_text']}"
+                , source="en", target=language
+            ) if language == "hi" else (
                 f"IPC Section {section['section']} covers {section['title']}. "
                 f"In practical terms: {section['law_text']}"
             ),
-            "citations": [f"IPC Section {section['section']}"]
+            "citations": [f"IPC Section {section['section']}"],
+            "confidence": "High",
         }
     )
 
@@ -238,9 +280,10 @@ def get_helplines():
 @api_bp.post("/api/sc/query")
 def sc_query():
     payload = SupremeCourtQueryRequest.model_validate(request.get_json(silent=True) or {})
+    language = request.args.get("language", "en")
     query = payload.question.strip()
 
-    matches = sc_retriever.search(query, top_k=3)
+    matches = get_sc_retriever().search(query, top_k=3)
     if not matches:
         return success_response(
             {
@@ -261,13 +304,13 @@ def sc_query():
 
     return success_response(
         {
-            "user_question": query,
+            "user_question": translate_text(query, source="en", target=language) if language == "hi" else query,
             "match_percentage": score_pct,
             "confidence": confidence,
             "case_name": best.item.get("case_name", "Unknown case"),
             "judgment_date": best.item.get("judgment_date", "Unknown date"),
             "matched_question": best.item.get("question", ""),
-            "answer": best.item.get("answer", ""),
+            "answer": translate_text(best.item.get("answer", ""), source="en", target=language) if language == "hi" else best.item.get("answer", ""),
             "citations": [
                 {
                     "case_name": match.item.get("case_name", ""),
@@ -280,8 +323,36 @@ def sc_query():
     )
 
 
+@api_bp.post("/api/chat")
+def chat_assistant():
+    payload = ChatRequest.model_validate(request.get_json(silent=True) or {})
+    response = get_chat_service().ask(payload.message, language=payload.language)
+    return success_response(response)
+
+
+@api_bp.post("/api/documents/generate")
+def generate_document():
+    payload = DocumentRequest.model_validate(request.get_json(silent=True) or {})
+    document_text = get_document_service().build_text(
+        document_type=payload.document_type,  # type: ignore[arg-type]
+        name=payload.name,
+        incident=payload.incident,
+        location=payload.location,
+        date=payload.date,
+    )
+    pdf_bytes = get_document_service().build_pdf(document_text)
+    return success_response(
+        {
+            "document_type": payload.document_type,
+            "text": document_text,
+            "pdf_base64": base64.b64encode(pdf_bytes).decode("utf-8"),
+            "filename": f"{payload.document_type}_draft.pdf",
+        }
+    )
+
+
 @api_bp.post("/api/case/predict")
 def predict_case():
     payload = CasePredictRequest.model_validate(request.get_json(silent=True) or {})
-    prediction = case_service.predict(payload.model_dump())
+    prediction = get_case_service().predict(payload.model_dump())
     return success_response(prediction)
