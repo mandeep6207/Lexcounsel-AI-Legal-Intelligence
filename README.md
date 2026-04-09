@@ -1,4 +1,4 @@
-# LexCounsel AI
+# LexCounsel AI — Making Law Understandable with AI
 
 ### AI-native Legal Intelligence Platform for Accessible Justice, Faster Legal Navigation, and Decision Support
 
